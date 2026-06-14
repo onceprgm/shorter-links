@@ -2,22 +2,33 @@
 
 Telegram bot for shortening links with click statistics.
 
-Send the bot a long URL and get a short one back. Every visit goes through the
-redirect service, which increments a counter; statistics are available in the bot.
+Send the bot a long URL and get a short `t.me` deep link back. When someone
+opens that link, Telegram launches the bot with `/start <slug>`, the bot
+increments a click counter and offers a button to the original URL. No domain
+and no hosting required - everything lives inside the bot.
 
 ## Stack
 
 - **[aiogram 3.x](https://docs.aiogram.dev/)** - bot logic (async)
-- **[FastAPI](https://fastapi.tiangolo.com/) + uvicorn** - redirect microservice
 - **SQLite** via **SQLAlchemy 2.0 (async)** + aiosqlite
 - **pydantic-settings** - config from `.env`
 
-## Architecture
+## How a short link works
+
+A short link is a Telegram deep link:
 
 ```
-User ──URL──▶ Bot (aiogram) ──write──▶ SQLite ◀──read── Redirect (FastAPI)
-                  ▲                                          │
-                  └──────────── stats ◀── +1 click ◀── HTTP 302 ── Browser
+https://t.me/<bot_username>?start=<slug>
+```
+
+```
+Author ──/shorten <url>──▶ Bot ──save──▶ SQLite
+                            │
+                            └──reply──▶ t.me/<bot>?start=<slug>
+
+Visitor ──open deep link──▶ Bot (/start <slug>) ──+1 click──▶ SQLite
+                            │
+                            └──reply──▶ button to original URL
 ```
 
 ## Commands
@@ -46,13 +57,9 @@ User ──URL──▶ Bot (aiogram) ──write──▶ SQLite ◀──read�
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-cp .env.example .env   # set BOT_TOKEN from @BotFather
+cp .env.example .env   # set BOT_TOKEN and BOT_USERNAME
 
-# bot
 python -m app.bot
-
-# redirect service (in a separate terminal)
-python -m app.redirect
 ```
 
 ## Status
